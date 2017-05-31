@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="lib" path="/media/w1/data/kafka_2.11-0.10.2.0/libs/kafka-clients-0.10.2.0.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/gitHub/amazon-sqs-java-messaging-lib/target/amazon-sqs-java-messaging-lib-1.0.3.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/gitHub/aws-sdk-java/aws-java-sdk-sqs/target/aws-java-sdk-sqs-1.11.134-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/gitHub/aws-sdk-java/aws-java-sdk/target/aws-java-sdk-1.11.134-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/javaee.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/gitHub/aws-sdk-java/aws-java-sdk-core/target/aws-java-sdk-core-1.11.134-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/jackson-databind-2.9.0.pr3.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/jackson-core-2.9.0.pr3.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/jackson-annotations-2.9.0.pr3.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/httpclient-4.5.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/httpcore-4.4.6.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/joda-time-2.9.9.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/slf4j-api-1.7.25.jar"/>
+	<classpathentry kind="lib" path="/media/w1/data/ExternalJars/slf4j-simple-1.7.25.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
