@@ -22,10 +22,12 @@ public class SQSProducer {
 	SQSConnection connection;
 	AWSKafkaConfig config;
 	int seqNum = 1;
+	String deDuplicationId = "NA";
 	
 	public void init(AWSKafkaConfig config){
 		
 		this.config = config;
+		deDuplicationId  = config.getDeDeupPrefix();
 		SQSConnectionFactory connectionFactory = new SQSConnectionFactory(
 		        new ProviderConfiguration(),
 		        AmazonSQSClientBuilder.standard()
@@ -68,7 +70,7 @@ public class SQSProducer {
         try {
             TextMessage message = session.createTextMessage(msg);
             message.setStringProperty("JMSXGroupID", "Default");
-            message.setStringProperty("JMS_SQS_DeduplicationId", "hello_"+(seqNum++));
+            message.setStringProperty("JMS_SQS_DeduplicationId", deDuplicationId+(seqNum++));
             producer.send(message);
         } catch (JMSException e) {
             System.err.println( "Failed sending message: " + e.getMessage() );

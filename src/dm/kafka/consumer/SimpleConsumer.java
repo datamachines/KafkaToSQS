@@ -34,7 +34,6 @@ public class SimpleConsumer {
       
       //print the topic name
       System.out.println("Subscribed to topic " + topicName);
-      int i = 0;
       
       while (true) {
          ConsumerRecords<String, String> records = consumer.poll(100);

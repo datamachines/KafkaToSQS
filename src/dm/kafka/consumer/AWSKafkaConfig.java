@@ -18,6 +18,8 @@ public class AWSKafkaConfig {
     
     public static final Region DEFAULT_REGION = Region.getRegion(Regions.US_EAST_2);
     
+    public static final String DEFAULT_NA = "NA";
+    
     private static String getParameter( String args[], int i ) {
         if( i + 1 >= args.length ) {
             throw new IllegalArgumentException( "Missing parameter for " + args[i] );
@@ -73,6 +75,9 @@ public class AWSKafkaConfig {
                     throw new IllegalArgumentException("Error reading credentials from " + credsFile, e );
                 }
                 i++;
+            } else if( arg.equals( "--dedupPrefix" ) ) {
+            	queueDedupPrefix = getParameter(args, i);
+                i++;
             } else if( arg.equals( "--bootstrap.servers" ) ) {
             	kafkaServers = getParameter(args, i);
                 i++;
@@ -89,9 +94,10 @@ public class AWSKafkaConfig {
         }
     }
     
+    private String queueDedupPrefix = DEFAULT_NA;
     private List<String> kafkaTopics = DEFAULT_KAFKA_TOPICS;
-    private String kafkaServers = "NA";
-    private String kafkaGrpId = "NA";
+    private String kafkaServers = DEFAULT_NA;
+    private String kafkaGrpId = DEFAULT_NA;
     private String queueName = DEFAULT_QUEUE_NAME;
     private Region region = DEFAULT_REGION;
     private Regions regions = Regions.US_EAST_2;
@@ -100,6 +106,7 @@ public class AWSKafkaConfig {
     public String testRst(){
     	return "queue:"+queueName+"  region:"+regions+" bootstrap.servers:"+kafkaServers+" group.id:"+kafkaGrpId;
     }
+    
     
     public String getKafkaServers(){
     	return kafkaServers;
@@ -117,6 +124,10 @@ public class AWSKafkaConfig {
     
     public void setQueueName(String queueName) {
         this.queueName = queueName;
+    }
+    
+    public String getDeDeupPrefix(){
+    	return queueDedupPrefix;
     }
     
     public Region getRegion() {
