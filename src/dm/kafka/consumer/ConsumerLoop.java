@@ -42,6 +42,7 @@ public class ConsumerLoop implements Runnable {
 	      // ignore for shutdown 
 	    } finally {
 	      consumer.close();
+	      msgSnder.close();
 	    }
 	  }
 	  public void shutdown() {

@@ -25,7 +25,8 @@ java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue <queueN
 --queue       :  The name of the AWS queue that will accept data from our app  
 --region      :  The AWS region that the AWS queue was created in  
 --credentials :  file with AWS key and secret for accessing account that queue was created in (credential.properties.template is a format  example)   
---dedupPrefix :  String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue   
+--dedupPrefix :  String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue
+--base64-bin  :  Range[1 - 256] Optional parameter that enables 64 ASCII encoding and aggregation of messages from Kafka to the AWS Queue. Messages will be Base64 encoded and then transmitted when the queue up (base64) messages' size is equal to the to set parameter.  This parameter has units of 1KB. 
 
 ## Kafka Parameters
 --bootstrap.servers : comma separated list of IP:PORT of Kafka brokers  
@@ -36,3 +37,17 @@ java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue <queueN
 java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue dmTestQueue.fifo --region us-east-2 --credentials ../credential.properties --bootstrap.servers localhost:9092,10.2.10.55:9092,10.2.10.2:9099 --group.id testGrp1 --topics test1,test2,test3 --dedupPrefix fiveByFive
 
 java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue stdQueue --region us-east-2 --credentials ../credential.properties --bootstrap.servers 10.2.10.2:9099 --group.id testGrp1 --topics DSRA 
+
+## Base64 Encoding and Aggregations
+Commas are use to separate different messages when --base64-bin (base64 encoding and aggregation) is set for this application.
+
+### Original Messages
+Message 1 = "MESSAGE1"
+Message 2 = "message2"
+
+### Base64
+Message 1 = "TUVTU0FHRTE="
+Message 2 = "bWVzc2FnZTI="
+
+### Transmitted Message to AWS Queue
+Transmitted Message Body to AWS Queue = "TUVTU0FHRTE=,bWVzc2FnZTI="

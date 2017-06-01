@@ -20,6 +20,8 @@ public class AWSKafkaConfig {
     
     public static final String DEFAULT_NA = "NA";
     
+    public static final int MAX_BIN_SIZE = 1024*256;
+    
     private static String getParameter( String args[], int i ) {
         if( i + 1 >= args.length ) {
             throw new IllegalArgumentException( "Missing parameter for " + args[i] );
@@ -75,6 +77,20 @@ public class AWSKafkaConfig {
                     throw new IllegalArgumentException("Error reading credentials from " + credsFile, e );
                 }
                 i++;
+            } 
+            else if( arg.equals( "--base64-bin" ) ) {
+            	try{
+            		binSize = Integer.valueOf(getParameter(args, i))*1024;
+            		if(binSize > MAX_BIN_SIZE){
+            			binSize = MAX_BIN_SIZE;
+            		}
+            		if(binSize < 0){
+            			binSize = 0;
+            		}
+            	}catch(Throwable e){
+            		binSize = 0;
+            	}
+                i++;
             } else if( arg.equals( "--dedupPrefix" ) ) {
             	queueDedupPrefix = getParameter(args, i);
                 i++;
@@ -94,6 +110,7 @@ public class AWSKafkaConfig {
         }
     }
     
+    private int binSize = 0;
     private String queueDedupPrefix = DEFAULT_NA;
     private List<String> kafkaTopics = DEFAULT_KAFKA_TOPICS;
     private String kafkaServers = DEFAULT_NA;
@@ -107,7 +124,9 @@ public class AWSKafkaConfig {
     	return "queue:"+queueName+"  region:"+regions+" bootstrap.servers:"+kafkaServers+" group.id:"+kafkaGrpId;
     }
     
-    
+    public int getBinSize(){
+    	return binSize;
+    }
     public String getKafkaServers(){
     	return kafkaServers;
     }
