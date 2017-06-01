@@ -39,14 +39,16 @@ java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue dmTestQ
 java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue stdQueue --region us-east-2 --credentials ../credential.properties --bootstrap.servers 10.2.10.2:9099 --group.id testGrp1 --topics DSRA 
 
 ## Base64 Encoding and Aggregations
-Commas are use to separate different messages when --base64-bin (base64 encoding and aggregation) is set for this application.
+Commas are use to separate different Kafka messages when --base64-bin (base64 encoding and aggregation) option is used for transmitting data to AWS Queue.
 
 ### Original Messages
 Message 1 = "MESSAGE1"
+
 Message 2 = "message2"
 
 ### Base64
 Message 1 = "TUVTU0FHRTE="
+
 Message 2 = "bWVzc2FnZTI="
 
 ### Transmitted Message to AWS Queue
