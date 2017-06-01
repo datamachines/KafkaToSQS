@@ -2,7 +2,7 @@
 
 ![KafkaToSQS](https://raw.githubusercontent.com/datamachines/KafkaToSQS/master/KafkaToSQS.png)
 
-KafkaToSQS facilitates mirroring an internal Kafka topic to AWS SQS where it can be safely consumed by third parties or accessed safely by globally distributed Internet of Things or similar architectures.   
+KafkaToSQS facilitates mirroring an internal Kafka topic to AWS SQS where it can be safely consumed by third parties or accessed by globally distributed Internet of Things or similar architectures.   
 
 [Apache Kafka](https://kafka.apache.org/) is an open-source stream processing platform developed by the Apache Software Foundation written in Scala and Java. The project aims to provide a unified, high-throughput, low-latency platform for handling real-time data feeds.
 
