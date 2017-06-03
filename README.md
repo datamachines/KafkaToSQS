@@ -25,8 +25,8 @@ java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue <queueN
 --queue       :  The name of the AWS queue that will accept data from our app  
 --region      :  The AWS region that the AWS queue was created in  
 --credentials :  file with AWS key and secret for accessing account that queue was created in (credential.properties.template is a format  example)   
---dedupPrefix :  String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue
---base64-bin  :  Range[1 - 256] Optional parameter that enables 64 ASCII encoding and aggregation of messages from Kafka to the AWS Queue. Messages will be Base64 encoded and then transmitted when the queue up (base64) messages' size is equal to the to set parameter.  This parameter has units of 1KB. 
+--dedupPrefix :  String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue  
+--base64-bin  :  Range[1 - 256] Optional parameter that enables 64 ASCII encoding and aggregation of messages from Kafka to the AWS Queue. Messages will be Base64 encoded and then transmitted when the queue up (base64) messages' size is equal to the to set parameter.  This parameter has units of 1KB.  
 
 ## Kafka Parameters
 --bootstrap.servers : comma separated list of IP:PORT of Kafka brokers  
