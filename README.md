@@ -107,21 +107,26 @@ Message 2 = "bWVzc2FnZTI="
 Transmitted Message Body to AWS Queue = "TUVTU0FHRTE=,bWVzc2FnZTI="
 
 ## AES encoding
+```
 output of AES encryption: = Base64 of IV : Base64 of cipher text  (A:B)
 IV = 16 bytes (random value) which will then be base64 encoded = A
 original message, AES encrypted with password(16,24 or 32 characters) and IV.  The encrypted message is then base64 encoded = B
+```
 
 ### code support for decryption 
-
+```
 dm.kafka.consumer.ExternalDecryptUtil method
 1. static public String[] unBin(String queueData)
 	- This method will take any bin/aggregated queue message and break them into individual message and return them in an String array. Use the decrypt method to decrypt each message in the return array.
 2. String decrypt(String data)
 	- Decrypts the String (format  A:B - A and B are Base64 encoded.  A is IV and B is encrypted/cipher text).  This method takes the encoding that is done by the encrypted encoding done by this application and decodes it.
 	- Use the init(cipherkey) method to set the AES encryption key before using decrypt
+```
 
 ## Issue:
 ###libcrypto.so
 Can't find libcrypto.so
-####fix
+
+###fix
 sudo apt-get install libssl-dev
+
