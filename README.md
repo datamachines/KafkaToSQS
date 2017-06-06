@@ -44,7 +44,7 @@ dataProcessing:
   AES: AES encrypted messages before transmitting data to an AWS queue
   AESPW: AES encryption key - needs to be 16,24 or 32 characters - This parameter needs to be set if binAES or AES is set to true
 ```
-###config.yaml  Parameter constraints and notes
+### config.yaml  Parameter constraints and notes
 Only one of the following parameter may be set to true at the same time: 
 	- binBase64
 	- binAES
@@ -124,9 +124,9 @@ dm.kafka.consumer.ExternalDecryptUtil method
 ```
 
 ## Issue:
-###libcrypto.so
+### libcrypto.so
 Can't find libcrypto.so
 
-###fix
+### fix
 sudo apt-get install libssl-dev
 
