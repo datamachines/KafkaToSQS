@@ -17,14 +17,15 @@ mvn package
 ```
 
 # Usage
-
+```
 cd  ./target --
 java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar ../config.yaml
-
+```
 
 
 
 ##config.yaml Parameters
+```
 awsParms:
   queue: The name of the AWS queue that will accept data from our app
   region: The AWS region that the AWS queue was created in
@@ -42,17 +43,19 @@ dataProcessing:
   binAES: AES encrypted messages and aggregate them for transmission to AWS queue. The aggregation is the same as in binBase64.
   AES: AES encrypted messages before transmitting data to an AWS queue
   AESPW: AES encryption key - needs to be 16,24 or 32 characters - This parameter needs to be set if binAES or AES is set to true
-
+```
 ###config.yaml  Parameter constraints and notes
 Only one of the following parameter may be set to true at the same time: 
 	- binBase64
 	- binAES
 	- AES
 
+
 binSize has a max value of 256.  This parameters has units of 1KB
 
 ### Example configurations
 #### Example 1
+```
 awsParms:
   queue: stdQueue
   region: us-east-2
@@ -68,8 +71,9 @@ dataProcessing:
   binAES: false
   AES: false
   AESPW: 1234567890123456
-  
+```
 #### Example 2
+```
 awsParms:
   queue: data.fifo
   region: us-east-1
@@ -84,6 +88,7 @@ dataProcessing:
   binAES: true
   AES: false
   AESPW: 1234567890123456
+```
 
 ## Base64 Encoding and Aggregations
 Commas are use to separate different Kafka messages when --base64-bin (base64 encoding and aggregation) option is set for transmitting data to an AWS Queue.
