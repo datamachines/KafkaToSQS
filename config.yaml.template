@@ -1,0 +1,16 @@
+#parameter config for KafKa to AWS SQS transmission
+awsParms:
+  queue: stdQueue
+  region: us-east-2
+  credentials: ../credential.properties
+  dedupPrefix: NA
+kafkaParms:
+  bootstrap.servers: localhost:9092
+  group.id: testGrp1
+  topics: test1,test2,test3
+dataProcessing:
+  binSize: 256
+  binBase64: false
+  binAES: false
+  AES: false
+  AESPW: 1234567890123456

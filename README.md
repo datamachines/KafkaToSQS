@@ -19,24 +19,71 @@ mvn package
 # Usage
 
 cd  ./target --
-java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue <queueName> --region <AWS Queue Instance Region> --credentials <file with AWS credential> --bootstrap.servers <IP:Port (1...N, comma separated list)> --group.id <any string ID> --topics  <topic names (1...N, comma separated list)> --dedupPrefix <any string>
+java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar ../config.yaml
 
-## AWS Parameters
---queue       :  The name of the AWS queue that will accept data from our app  
---region      :  The AWS region that the AWS queue was created in  
---credentials :  file with AWS key and secret for accessing account that queue was created in (credential.properties.template is a format  example)   
---dedupPrefix :  String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue  
---base64-bin  :  Range[1 - 256] Optional parameter that enables 64 ASCII encoding and aggregation of messages from Kafka to the AWS Queue. Messages will be Base64 encoded and then transmitted when the queue up (base64) messages' size is equal to the to set parameter.  This parameter has units of 1KB.  
 
-## Kafka Parameters
---bootstrap.servers : comma separated list of IP:PORT of Kafka brokers  
---group.id          : group id for Kafka consumer - any string will work  
---topics            : comma separated list of Kafka topic(s) that app will listen for  
 
-## Examples
-java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue dmTestQueue.fifo --region us-east-2 --credentials ../credential.properties --bootstrap.servers localhost:9092,10.2.10.55:9092,10.2.10.2:9099 --group.id testGrp1 --topics test1,test2,test3 --dedupPrefix fiveByFive
 
-java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar --queue stdQueue --region us-east-2 --credentials ../credential.properties --bootstrap.servers 10.2.10.2:9099 --group.id testGrp1 --topics DSRA 
+##config.yaml Parameters
+awsParms:
+  queue: The name of the AWS queue that will accept data from our app
+  region: The AWS region that the AWS queue was created in
+  credentials: file with AWS key and secret for accessing account that queue was created in (credential.properties.template is a format  example)
+  dedupPrefix: String use by AWS message framework to prevent duplicate messages (necessary for FIFO queue).  A default "NA" prefix is used if one is not supplied.  This string should be different if more than one instance of this app is used simultaneously with the same AWS Queue
+  
+kafkaParms:
+  bootstrap.servers: comma separated list of IP:PORT of Kafka brokers
+  group.id: group id for Kafka consumer - any string will work
+  topics: comma separated list of Kafka topic(s) that app will listen for 
+  
+dataProcessing:
+  binSize: Range[1 - 256] Optional parameter that sets the aggregate message size to an AWS queue if binBase64 or binAES is set to true
+  binBase64: Base64 encode message and aggregate messages before transmission to an AWS queue. The messages will be aggregated until the aggregate message size is equal to value in binSize or appending the current message will cause the aggregate message to be larger than binSize. 
+  binAES: AES encrypted messages and aggregate them for transmission to AWS queue. The aggregation is the same as in binBase64.
+  AES: AES encrypted messages before transmitting data to an AWS queue
+  AESPW: AES encryption key - needs to be 16,24 or 32 characters - This parameter needs to be set if binAES or AES is set to true
+
+###config.yaml  Parameter constraints and notes
+Only one of the following parameter may be set to true at the same time: 
+	- binBase64
+	- binAES
+	- AES
+
+binSize has a max value of 256.  This parameters has units of 1KB
+
+### Example configurations
+#### Example 1
+awsParms:
+  queue: stdQueue
+  region: us-east-2
+  credentials: ../credential.properties
+  dedupPrefix: sor
+kafkaParms:
+  bootstrap.servers: localhost:9092
+  group.id: testGrp1
+  topics: test1,test2,test3
+dataProcessing:
+  binSize: 256
+  binBase64: false
+  binAES: false
+  AES: false
+  AESPW: 1234567890123456
+  
+#### Example 2
+awsParms:
+  queue: data.fifo
+  region: us-east-1
+  credentials: ../credential.properties
+kafkaParms:
+  bootstrap.servers: localhost:9092,10.1.22.21:9092,10.1.22.26:9097,10.1.22.125:9092
+  group.id: testGrp1
+  topics: test1,test2,test3
+dataProcessing:
+  binSize: 100
+  binBase64: false
+  binAES: true
+  AES: false
+  AESPW: 1234567890123456
 
 ## Base64 Encoding and Aggregations
 Commas are use to separate different Kafka messages when --base64-bin (base64 encoding and aggregation) option is set for transmitting data to an AWS Queue.
@@ -53,3 +100,23 @@ Message 2 = "bWVzc2FnZTI="
 
 ### Transmitted Message to AWS Queue
 Transmitted Message Body to AWS Queue = "TUVTU0FHRTE=,bWVzc2FnZTI="
+
+## AES encoding
+output of AES encryption: = Base64 of IV : Base64 of cipher text  (A:B)
+IV = 16 bytes (random value) which will then be base64 encoded = A
+original message, AES encrypted with password(16,24 or 32 characters) and IV.  The encrypted message is then base64 encoded = B
+
+### code support for decryption 
+
+dm.kafka.consumer.ExternalDecryptUtil method
+1. static public String[] unBin(String queueData)
+	- This method will take any bin/aggregated queue message and break them into individual message and return them in an String array. Use the decrypt method to decrypt each message in the return array.
+2. String decrypt(String data)
+	- Decrypts the String (format  A:B - A and B are Base64 encoded.  A is IV and B is encrypted/cipher text).  This method takes the encoding that is done by the encrypted encoding done by this application and decodes it.
+	- Use the init(cipherkey) method to set the AES encryption key before using decrypt
+
+## Issue:
+###libcrypto.so
+Can't find libcrypto.so
+####fix
+sudo apt-get install libssl-dev

@@ -3,6 +3,7 @@ package dm.kafka.consumer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -10,6 +11,15 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+
+
+import java.io.File;
+
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 
 public class AWSKafkaConfig {
     public static final String DEFAULT_QUEUE_NAME = "SQSJMSClientExampleQueue";
@@ -49,17 +59,176 @@ public class AWSKafkaConfig {
             return null;
         }
     }
+    public static void ParamsErrorMessage(String prm, String Option){
+    	System.err.println(prm+" is missing from the "+Option+" section in the yaml config files");
+    }
+    public static AWSKafkaConfig parseYaml(String file){
+    	ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    	AWSKafkaYaml cfg = null;
+    	boolean requiredParmsInYaml = true;
+        try {
+        	cfg = mapper.readValue(new File(file), AWSKafkaYaml.class);
+            System.out.println(ReflectionToStringBuilder.toString(cfg,ToStringStyle.MULTI_LINE_STYLE));
+        	Map<String,String> aws = cfg.getAwsParms();
+            Map<String,String> kafka = cfg.getKafkaParms();
+            Map<String,String> data = cfg.getDataProcessing();
+            
+            for(String parm: AWSRequireParms){
+            	if(aws.get(parm) == null){
+            		requiredParmsInYaml = false;
+            		ParamsErrorMessage(parm,"awsParms");
+            	}
+            }
+            for(String parm: KafkaRequireParms){
+            	if(kafka.get(parm) == null){
+            		requiredParmsInYaml = false;
+            		ParamsErrorMessage(parm,"kafkaParms");
+            	}
+            	
+            }
+            //check conflicting Parameters combinations
+            int numEx = 0;
+            StringBuilder partErr = new StringBuilder();
+            for(String parm: ExclusiveParms){
+            	String test = data.get(parm);
+            	if(test!=null & test.equals("true")){
+            		if(numEx>0){
+            			partErr.append(", ");
+            		}
+            		partErr.append(parm);
+            		numEx++;
+            	}
+            	
+            }
+            if(numEx>1){
+            	requiredParmsInYaml = false;
+    			System.err.println(partErr.toString()+" are mutually exclusive.  Only one of them may be set to true");
+            }
+            
+            
+            //Check Optional Parameters combinations
+            String xAES = data.get("AES");
+            String xBinAes = data.get("binAES");
+            if((xAES!=null && xAES.equals("true")) ||
+            		(xBinAes!=null && xBinAes.equals("true")) 	){
+            	String xAesPw = data.get("AESPW");
+            	if(xAesPw==null){
+            		requiredParmsInYaml = false;
+            		ParamsErrorMessage("AESPW","AES or binAES");
+            	}else{
+            		String checkKeyRet = AESEncrypt.checkKey(xAesPw);
+            		if(checkKeyRet != null){
+            			requiredParmsInYaml = false;
+            			System.err.println("Error with AES Key: "+checkKeyRet);
+            		}
+            	}
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(requiredParmsInYaml)
+        	return  new AWSKafkaConfig(cfg);
+        else
+        	return null;
+    }
+    enum DataProcessing{NA,Base64,AES};
     
+    DataProcessing mProcessor = DataProcessing.NA;
+    boolean mUseBin = false;
+    String AESPassword = null;
+    
+    static String[] AWSRequireParms = {"queue","region","credentials"};
+    static String[] KafkaRequireParms = {"bootstrap.servers","topics","group.id"};
+    static String[] ExclusiveParms = {"binBase64","AES","binAES"};
+    private AWSKafkaConfig(AWSKafkaYaml cfg){
+    	Map<String,String> aws = cfg.getAwsParms();
+        Map<String,String> kafka = cfg.getKafkaParms();
+        Map<String,String> data = cfg.getDataProcessing();
+        
+        
+        //Require Parameters
+        setQueueName(aws.get("queue"));
+        cfgRegion(aws.get("region"));
+        setCredentialsProvider( new PropertiesFileCredentialsProvider(aws.get("credentials")) );
+        
+        kafkaServers = kafka.get("bootstrap.servers");
+        kafkaTopics =  Arrays.asList(kafka.get("topics").split(","));
+        kafkaGrpId = kafka.get("group.id");
+        
+        //Optional Parameters
+        String depParms = aws.get("dedupPrefix");
+        if( depParms != null){
+        	queueDedupPrefix = depParms;
+        }
+
+        
+        String sBin = data.get("binSize");
+        if(sBin != null){
+        	binSize = Integer.valueOf(sBin)*1024;
+        }
+        String sBase64 = data.get("binBase64");
+        if(sBase64 != null && sBase64.equals("true")){
+        	mProcessor = DataProcessing.Base64;
+        	mUseBin = true;
+        }
+        
+        String xAES = data.get("AES");
+        String xBinAes = data.get("binAES");
+        if(  (xAES!=null && xAES.equals("true"))  ||
+        		(xBinAes!=null && xBinAes.equals("true"))){
+        	String xAesPw = data.get("AESPW");
+        	if(xAesPw==null){
+        		ParamsErrorMessage("AESPW","AES");
+        	}else{
+        		AESPassword = xAesPw;
+	        	mProcessor = DataProcessing.AES;
+        	}
+        }
+        
+        if(xBinAes!=null && xBinAes.equals("true")){
+        	mUseBin = true;
+        }
+    }
+    public DataTransformer getPre(){
+    	DataTransformer mRet = null;
+    	switch(mProcessor){
+    	case Base64:
+    		mRet = new EncodeBase64();
+    		break;
+    	case AES:
+    		mRet = new AESEncrypt(AESPassword);
+    		break;
+		default:
+			break;
+    	}
+    	return mRet;
+    }
+    
+    public DataReplaceXmit getReplaceXmit(DataSink inf){
+    	if(mUseBin){
+    		return new BinData(inf,binSize);
+    	}
+    	return null;
+    }
+    private void cfgRegion(String regionName){
+        try {
+        	Regions tmpRegions = Regions.fromName(regionName);
+            setRegion(Region.getRegion(tmpRegions));
+            setRegions(tmpRegions);
+        } catch( IllegalArgumentException e ) {
+            throw new IllegalArgumentException( "Unrecognized region " + regionName );  
+        }
+    }
     private AWSKafkaConfig(String args[]) {
     	if(DEFAULT_KAFKA_TOPICS.size()==0){
     		DEFAULT_KAFKA_TOPICS.add("Test");
     	}
         for( int i = 0; i < args.length; ++i ) {
             String arg = args[i];
-            if( arg.equals( "--queue" ) ) {
+            if( arg.equals( "--queue" ) ) {//Done
                 setQueueName(getParameter(args, i));
                 i++;
-            } else if( arg.equals( "--region" ) ) {
+            } else if( arg.equals( "--region" ) ) {//Done
                 String regionName = getParameter(args, i);
                 try {
                 	Regions tmpRegions = Regions.fromName(regionName);
@@ -69,7 +238,7 @@ public class AWSKafkaConfig {
                     throw new IllegalArgumentException( "Unrecognized region " + regionName );  
                 }
                 i++;
-            } else if( arg.equals( "--credentials" ) ) {
+            } else if( arg.equals( "--credentials" ) ) {//Done
                 String credsFile = getParameter(args, i);
                 try {
                     setCredentialsProvider( new PropertiesFileCredentialsProvider(credsFile) );
@@ -91,7 +260,7 @@ public class AWSKafkaConfig {
             		binSize = 0;
             	}
                 i++;
-            } else if( arg.equals( "--dedupPrefix" ) ) {
+            } else if( arg.equals( "--dedupPrefix" ) ) {//Done
             	queueDedupPrefix = getParameter(args, i);
                 i++;
             } else if( arg.equals( "--bootstrap.servers" ) ) {
@@ -110,7 +279,7 @@ public class AWSKafkaConfig {
         }
     }
     
-    private int binSize = 0;
+    private int binSize = 1024;
     private String queueDedupPrefix = DEFAULT_NA;
     private List<String> kafkaTopics = DEFAULT_KAFKA_TOPICS;
     private String kafkaServers = DEFAULT_NA;
@@ -124,9 +293,7 @@ public class AWSKafkaConfig {
     	return "queue:"+queueName+"  region:"+regions+" bootstrap.servers:"+kafkaServers+" group.id:"+kafkaGrpId;
     }
     
-    public int getBinSize(){
-    	return binSize;
-    }
+
     public String getKafkaServers(){
     	return kafkaServers;
     }

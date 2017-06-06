@@ -1,8 +1,6 @@
 package dm.kafka.consumer;
 
 
-import java.io.UnsupportedEncodingException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,24 +16,26 @@ import com.amazon.sqs.javamessaging.SQSConnectionFactory;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 
-public class SQSProducer {
-	static final int MAX_MSG_BOBY_SIZE = 1024*256 - 100;//reserving 100 characters for 
+public class SQSProducer implements DataSink{
+	 
 	Session session;
 	MessageProducer producer;
 	SQSConnection connection;
 	AWSKafkaConfig config;
 	int seqNum = 1;
 	String deDuplicationId = "NA";
-	int binSize = 0;
-	StringBuilder messageBuffer = new StringBuilder();
+	
+	//StringBuilder messageBuffer = new StringBuilder();
+	DataTransformer mPreProcessor = null;
+	DataReplaceXmit mXmitReplacement = null;
+	//BinData binObj = null;
+	
 	public void init(AWSKafkaConfig config){
 		
 		this.config = config;
 		deDuplicationId  = config.getDeDeupPrefix();
-		binSize = config.getBinSize();
-		if(binSize>MAX_MSG_BOBY_SIZE){
-			binSize = MAX_MSG_BOBY_SIZE;
-		}
+		
+		
 		SQSConnectionFactory connectionFactory = new SQSConnectionFactory(
 		        new ProviderConfiguration(),
 		        AmazonSQSClientBuilder.standard()
@@ -43,6 +43,9 @@ public class SQSProducer {
 		                .withCredentials(config.getCredentialsProvider())
 		        );
 		try{ 
+			
+			mPreProcessor = config.getPre();
+			mXmitReplacement = config.getReplaceXmit(this);
 			// Create the connection.
 			connection = connectionFactory.createConnection();
 			
@@ -68,62 +71,40 @@ public class SQSProducer {
         
 	}
 	public void close(){
+		//ceanup, transmit any remaining data
 		try{
-			SendRemainingMsg();
+			if(mPreProcessor!= null){
+				mPreProcessor.close();
+			}
+			if(mXmitReplacement != null){
+				mXmitReplacement.close();
+			}
 			connection.close();
 		}catch(JMSException e){
 		}
+		
+		System.out.println("Exit called on SQSProducer");
 	}
 	
-	public void sendMessages( String msg) {
-    	if(binSize < 1024){//minimum bin size is 1K - don't aggregate if anything less
-    		sendSQSMsg(msg);
+	public void sendMessages( String orgMsg) {
+		String msg = orgMsg;
+		if(mPreProcessor!= null){
+			msg = mPreProcessor.alter(orgMsg);
+		}
+		
+		
+    	if(mXmitReplacement == null){
+    		xmitData(msg);
     	}else{
-    		sendBatchMsg(msg);
+    		mXmitReplacement.send(msg);
     	}  
     }
-	private void SendRemainingMsg(){
-		if(messageBuffer.length()>0){
-			sendSQSMsg(messageBuffer.toString());
-			messageBuffer.setLength(0);//clear buffer
-		}
-	}
-	private void sendBatchMsg(String rawmsg){
-		String msg;
-		try {
-			msg = Base64.getEncoder().encodeToString(rawmsg.getBytes("utf-8"));
-		
-			int newMesSize = messageBuffer.length()+msg.length()+2;//2 - 1 for ',' message separator and 1 more charactor for NULL terminated String
-			if(newMesSize > binSize){//send out
-				if(messageBuffer.length() > 0){
-					sendSQSMsg(messageBuffer.toString());
-					messageBuffer.setLength(0);//clear buffer
-				}
-				messageBuffer.append(msg);
-				if(messageBuffer.length() >= binSize){//Send our message if it is >= max message size
-					sendSQSMsg(messageBuffer.toString());
-					messageBuffer.setLength(0);//clear buffer
-				}
-			}else if (newMesSize == binSize){
-				messageBuffer.append(',');
-				messageBuffer.append(msg);
-				sendSQSMsg(messageBuffer.toString());
-				messageBuffer.setLength(0);//clear buffer
-			}else{//aggregating messages into 1 big Queue message
-				if(messageBuffer.length() > 0){
-					messageBuffer.append(',');
-				}
-				messageBuffer.append(msg);
-			}
-		
-		} catch (UnsupportedEncodingException e) {
-			System.err.println( "Failed to econde message: " + e.getMessage() );
-		}
-	}
+
 	
-	private void sendSQSMsg(String msg){
+	@Override
+	public void xmitData(String data) {
 		try {
-			TextMessage message = session.createTextMessage(msg);
+			TextMessage message = session.createTextMessage(data);
 	        message.setStringProperty("JMSXGroupID", "Default");
 	        message.setStringProperty("JMS_SQS_DeduplicationId", deDuplicationId+(seqNum++));
 	        producer.send(message);
@@ -131,6 +112,7 @@ public class SQSProducer {
 	        System.err.println( "Failed sending message: " + e.getMessage() );
 	        e.printStackTrace();
 	    }
+		
 	}
 
 }

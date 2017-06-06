@@ -9,28 +9,34 @@ import java.util.concurrent.TimeUnit;
 public class KafkatoSQS {
 
 	public static void main(String[] args) {
-		AWSKafkaConfig config = AWSKafkaConfig.parseConfig("java -jar package.jar dm.kafka.consumer.KafkatoSQS",args); 
+		//AWSKafkaConfig config = AWSKafkaConfig.parseConfig("java -jar package.jar dm.kafka.consumer.KafkatoSQS",args); 
 
-		ExecutorService executor = Executors.newFixedThreadPool(1);
-		final List<ConsumerLoop> consumers = new ArrayList<>();
+		AWSKafkaConfig config = AWSKafkaConfig.parseYaml(args[0]);
+		if(config == null){
+			System.err.println("Error in Config. Terminating Program");
+		}else{
+			ExecutorService executor = Executors.newFixedThreadPool(1);
+			final List<ConsumerLoop> consumers = new ArrayList<>();
 
-		ConsumerLoop consumer = new ConsumerLoop(config);
-		consumers.add(consumer);
-		executor.submit(consumer);
+			ConsumerLoop consumer = new ConsumerLoop(config);
+			consumers.add(consumer);
+			executor.submit(consumer);
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				for (ConsumerLoop consumer : consumers) {
-					consumer.shutdown();
+			Runtime.getRuntime().addShutdownHook(new Thread() {
+				@Override
+				public void run() {
+					for (ConsumerLoop consumer : consumers) {
+						consumer.shutdown();
+					}
+					executor.shutdown();
+					try {
+						executor.awaitTermination(5000, TimeUnit.MILLISECONDS);
+					} catch (InterruptedException e) {
+					}
 				}
-				executor.shutdown();
-				try {
-					executor.awaitTermination(5000, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-				}
-			}
-		});
+			});
+		}
+		
 	}
 
 }
