@@ -24,7 +24,7 @@ java -jar kafkaConsumer-0.0.1-SNAPSHOT-jar-with-dependencies.jar ../config.yaml
 
 
 
-##config.yaml Parameters
+## config.yaml Parameters
 ```
 awsParms:
   queue: The name of the AWS queue that will accept data from our app
