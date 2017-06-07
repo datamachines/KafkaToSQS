@@ -123,7 +123,7 @@ dm.kafka.consumer.ExternalDecryptUtil method
 	- Use the init(cipherkey) method to set the AES encryption key before using decrypt
 ```
 
-## Issue:
+# Troubleshooting
 ### libcrypto.so
 Can't find libcrypto.so
 
