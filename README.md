@@ -140,7 +140,7 @@ AWS Queue.
 ```
 
 
-## Issue:
+# Troubleshooting
 ### libcrypto.so
 Can't find libcrypto.so
 
