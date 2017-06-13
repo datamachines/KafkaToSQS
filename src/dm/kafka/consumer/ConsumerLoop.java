@@ -35,7 +35,7 @@ public class ConsumerLoop implements Runnable {
 	      while (true) {
 	        ConsumerRecords<String, String> records = consumer.poll(Long.MAX_VALUE);
 	        for (ConsumerRecord<String, String> record : records) {
-	          msgSnder.sendMessages(record.value());
+	          msgSnder.sendMessages(record.value());//record.partition();record.offset();
 	        }
 	      }
 	    } catch (WakeupException e) {

@@ -29,12 +29,13 @@ public class SQSProducer implements DataSink{
 	DataTransformer mPreProcessor = null;
 	DataReplaceXmit mXmitReplacement = null;
 	//BinData binObj = null;
-	
+	boolean mXmitDisable = false;
 	public void init(AWSKafkaConfig config){
 		
 		this.config = config;
 		deDuplicationId  = config.getDeDeupPrefix();
 		
+		mXmitDisable = config.getAwsXmitDisable();
 		
 		SQSConnectionFactory connectionFactory = new SQSConnectionFactory(
 		        new ProviderConfiguration(),
@@ -104,10 +105,12 @@ public class SQSProducer implements DataSink{
 	@Override
 	public void xmitData(String data) {
 		try {
-			TextMessage message = session.createTextMessage(data);
-	        message.setStringProperty("JMSXGroupID", "Default");
-	        message.setStringProperty("JMS_SQS_DeduplicationId", deDuplicationId+(seqNum++));
-	        producer.send(message);
+			if(mXmitDisable == false){
+				TextMessage message = session.createTextMessage(data);
+		        message.setStringProperty("JMSXGroupID", "Default");
+		        message.setStringProperty("JMS_SQS_DeduplicationId", deDuplicationId+(seqNum++));
+		        producer.send(message);
+			}
 		} catch (JMSException e) {
 	        System.err.println( "Failed sending message: " + e.getMessage() );
 	        e.printStackTrace();

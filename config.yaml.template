@@ -9,7 +9,10 @@ kafkaParms:
   group.id: testGrp1
   topics: test1,test2,test3
 dataProcessing:
+  outTest: false
   binSize: 256
+  binTime:  60
+  binZip: true
   binBase64: false
   binAES: false
   AES: false

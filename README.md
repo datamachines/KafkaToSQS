@@ -38,18 +38,20 @@ kafkaParms:
   topics: comma separated list of Kafka topic(s) that app will listen for 
   
 dataProcessing:
-  binSize: Range[1 - 256] Optional parameter that sets the aggregate message size to an AWS queue if binBase64 or binAES is set to true
+  binSize: Range[1 - 256] Optional parameter that sets the aggregate message size to an AWS queue if binBase64 or binAES is set to true. Parameters has units of KB.  The default is 1024 bytes if this is not set/present.
+  binTime: Range[1....N] Optional parameter that sets the maximum time in minutes that bin/aggregated messages are store before it is transmitted to the AWS Queue.  The time starts counting down the first time a message is bin/aggregated.  Parameter has units of minutes.  The default is 10 minutes if this is not set/present.
   binBase64: Base64 encode message and aggregate messages before transmission to an AWS queue. The messages will be aggregated until the aggregate message size is equal to value in binSize or appending the current message will cause the aggregate message to be larger than binSize. 
   binAES: AES encrypted messages and aggregate them for transmission to AWS queue. The aggregation is the same as in binBase64.
   AES: AES encrypted messages before transmitting data to an AWS queue
   AESPW: AES encryption key - needs to be 16,24 or 32 characters - This parameter needs to be set if binAES or AES is set to true
+  binZip: Each message is a zip entry in a zip binary. The zip binary is sent to the AWS Queue in base64 encoding.
 ```
 ### config.yaml  Parameter constraints and notes
-Only one of the following parameter may be set to true at the same time: 
+Only one of the following parameter may be set to true at the same time(all are can be false): 
 	- binBase64
 	- binAES
 	- AES
-
+	- binZip
 
 binSize has a max value of 256.  This parameters has units of 1KB
 
@@ -66,7 +68,10 @@ kafkaParms:
   group.id: testGrp1
   topics: test1,test2,test3
 dataProcessing:
+  outTest: false
   binSize: 256
+  binTime:  60
+  binZip: true
   binBase64: false
   binAES: false
   AES: false
@@ -83,7 +88,10 @@ kafkaParms:
   group.id: testGrp1
   topics: test1,test2,test3
 dataProcessing:
+  outTest: false
   binSize: 100
+  binTime:  60
+  binZip: true
   binBase64: false
   binAES: true
   AES: false
@@ -122,6 +130,15 @@ dm.kafka.consumer.ExternalDecryptUtil method
 	- Decrypts the String (format  A:B - A and B are Base64 encoded.  A is IV and B is encrypted/cipher text).  This method takes the encoding that is done by the encrypted encoding done by this application and decodes it.
 	- Use the init(cipherkey) method to set the AES encryption key before using decrypt
 ```
+
+## BinZip encoding
+```
+Each kafka message is store as a zip entry in binary object/file.  
+The  binary zip object is base64 encoded and then transmitted to the
+AWS Queue.
+
+```
+
 
 ## Issue:
 ### libcrypto.so

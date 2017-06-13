@@ -132,14 +132,16 @@ public class AWSKafkaConfig {
         	return null;
     }
     enum DataProcessing{NA,Base64,AES};
+    enum XmitReplacement{NA,Bin,BinZip,OutTest};
     
     DataProcessing mProcessor = DataProcessing.NA;
-    boolean mUseBin = false;
+    //boolean mUseBin = false;
+    XmitReplacement mXmitReplacement = XmitReplacement.NA;
     String AESPassword = null;
-    
+    boolean mDisableXmit = false;
     static String[] AWSRequireParms = {"queue","region","credentials"};
     static String[] KafkaRequireParms = {"bootstrap.servers","topics","group.id"};
-    static String[] ExclusiveParms = {"binBase64","AES","binAES"};
+    static String[] ExclusiveParms = {"binBase64","AES","binAES","binZip","outTest"};
     private AWSKafkaConfig(AWSKafkaYaml cfg){
     	Map<String,String> aws = cfg.getAwsParms();
         Map<String,String> kafka = cfg.getKafkaParms();
@@ -164,12 +166,18 @@ public class AWSKafkaConfig {
         
         String sBin = data.get("binSize");
         if(sBin != null){
-        	binSize = Integer.valueOf(sBin)*1024;
+        	try{
+        		mBinSizeBytes = Integer.valueOf(sBin)*1024;
+        	}catch(Throwable e){}
         }
         String sBase64 = data.get("binBase64");
         if(sBase64 != null && sBase64.equals("true")){
         	mProcessor = DataProcessing.Base64;
-        	mUseBin = true;
+        	mXmitReplacement = XmitReplacement.Bin;
+        }
+        String disableXmit = aws.get("disableXmit");
+        if(disableXmit!= null && disableXmit.equals("true")){
+        	mDisableXmit = true;
         }
         
         String xAES = data.get("AES");
@@ -186,8 +194,28 @@ public class AWSKafkaConfig {
         }
         
         if(xBinAes!=null && xBinAes.equals("true")){
-        	mUseBin = true;
+        	mXmitReplacement = XmitReplacement.Bin;
         }
+        
+        String binZip = data.get("binZip");
+        if(binZip!= null && binZip.equals("true")){
+        	mXmitReplacement = XmitReplacement.BinZip;
+        	mProcessor = DataProcessing.NA;
+        }
+        
+        String outTest = data.get("outTest");
+        if(outTest!= null && outTest.equals("true")){
+        	mXmitReplacement = XmitReplacement.OutTest;
+        	mProcessor = DataProcessing.NA;
+        }
+        
+        String binTime = data.get("binTime");
+        if(binTime!= null ){
+        	try{
+        		mBinTimeInMinutes = Integer.valueOf(binTime);
+        	}catch(Throwable e){}
+        }
+        
     }
     public DataTransformer getPre(){
     	DataTransformer mRet = null;
@@ -199,16 +227,29 @@ public class AWSKafkaConfig {
     		mRet = new AESEncrypt(AESPassword);
     		break;
 		default:
+			mRet = null;
 			break;
     	}
     	return mRet;
     }
     
     public DataReplaceXmit getReplaceXmit(DataSink inf){
-    	if(mUseBin){
-    		return new BinData(inf,binSize);
+    	DataReplaceXmit ret = null;
+    	switch(mXmitReplacement){
+    	case Bin:
+    		ret =  new BinData(inf,mBinSizeBytes);
+    		break;
+    	case BinZip:
+    		ret = new BinZipData(inf,mBinSizeBytes,mBinTimeInMinutes);
+    		break;
+    	case OutTest:
+    		ret = new OutTest(inf,mBinSizeBytes);
+    		break;
+    	default:
+    		ret = null;
+    		break;
     	}
-    	return null;
+    	return ret;
     }
     private void cfgRegion(String regionName){
         try {
@@ -249,15 +290,15 @@ public class AWSKafkaConfig {
             } 
             else if( arg.equals( "--base64-bin" ) ) {
             	try{
-            		binSize = Integer.valueOf(getParameter(args, i))*1024;
-            		if(binSize > MAX_BIN_SIZE){
-            			binSize = MAX_BIN_SIZE;
+            		mBinSizeBytes = Integer.valueOf(getParameter(args, i))*1024;
+            		if(mBinSizeBytes > MAX_BIN_SIZE){
+            			mBinSizeBytes = MAX_BIN_SIZE;
             		}
-            		if(binSize < 0){
-            			binSize = 0;
+            		if(mBinSizeBytes < 0){
+            			mBinSizeBytes = 0;
             		}
             	}catch(Throwable e){
-            		binSize = 0;
+            		mBinSizeBytes = 0;
             	}
                 i++;
             } else if( arg.equals( "--dedupPrefix" ) ) {//Done
@@ -279,7 +320,8 @@ public class AWSKafkaConfig {
         }
     }
     
-    private int binSize = 1024;
+    private int mBinTimeInMinutes = 10;
+    private int mBinSizeBytes = 1024;
     private String queueDedupPrefix = DEFAULT_NA;
     private List<String> kafkaTopics = DEFAULT_KAFKA_TOPICS;
     private String kafkaServers = DEFAULT_NA;
@@ -302,6 +344,10 @@ public class AWSKafkaConfig {
     }
     public List<String> getKafkaTopics(){
     	return kafkaTopics;
+    }
+    
+    public boolean getAwsXmitDisable(){
+    	return mDisableXmit;
     }
     
     public String getQueueName() {
