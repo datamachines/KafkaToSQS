@@ -91,7 +91,7 @@ public class AWSKafkaConfig {
             StringBuilder partErr = new StringBuilder();
             for(String parm: ExclusiveParms){
             	String test = data.get(parm);
-            	if(test!=null & test.equals("true")){
+            	if(test!=null && test.equals("true")){
             		if(numEx>0){
             			partErr.append(", ");
             		}
